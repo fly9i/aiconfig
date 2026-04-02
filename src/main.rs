@@ -1,9 +1,20 @@
 use std::fs;
-use std::os::unix::fs::symlink;
+use std::io::{self, BufRead, Write};
 
 use clap::{Parser, Subcommand};
 
 const AGENTS_URL: &str = "https://raw.githubusercontent.com/fly9i/aiconfig/main/AGENTS.md";
+
+#[cfg(unix)]
+use std::os::unix::fs::symlink;
+
+#[cfg(windows)]
+fn symlink<P: AsRef<std::path::Path>, Q: AsRef<std::path::Path>>(
+    _original: P,
+    _link: Q,
+) -> std::io::Result<()> {
+    Ok(())
+}
 
 #[derive(Parser)]
 #[command(name = "my", about = "Personal CLI tool")]
@@ -18,10 +29,27 @@ enum Commands {
     Agents,
 }
 
+fn prompt_overwrite(path: &std::path::Path) -> bool {
+    println!("文件 {} 已存在，是否覆盖？[y/N]", path.display());
+    io::stdout().flush().ok();
+    let mut input = String::new();
+    io::stdin().lock().read_line(&mut input).ok();
+    matches!(input.trim().to_lowercase().as_str(), "y" | "yes")
+}
+
 fn cmd_agents() -> Result<(), Box<dyn std::error::Error>> {
     let cwd = std::env::current_dir()?;
     let agents_path = cwd.join("AGENTS.md");
     let claude_path = cwd.join("CLAUDE.md");
+
+    if agents_path.exists() && !prompt_overwrite(&agents_path) {
+        println!("跳过下载");
+        if !claude_path.exists() && claude_path.symlink_metadata().is_err() {
+            symlink("AGENTS.md", &claude_path)?;
+            println!("Symlink -> {} -> AGENTS.md", claude_path.display());
+        }
+        return Ok(());
+    }
 
     println!("Downloading AGENTS.md from {}", AGENTS_URL);
 
