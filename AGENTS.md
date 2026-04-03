@@ -35,13 +35,15 @@
 - Uvicorn
 - SQLite + Alembic（数据库迁移）
 - .env 保存配置，使用 pydantic-settings 读取
-
+- 后端在 "/"(根)提供前端构建的页面（index.html）方便直接部署
+- 后端在 "/static" 提供其他静态资源渲染访问
 ### 前端
 
 - Vue 3（Composition API + `<script setup>` 语法）
 - Vite 构建工具
 - TailwindCSS
 - Pinia 状态管理（如需要）
+- 
 
 ## 代码风格
 
