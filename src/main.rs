@@ -4,6 +4,7 @@ use std::io::{self, BufRead, Write};
 use clap::{Parser, Subcommand};
 
 const AGENTS_URL: &str = "https://raw.githubusercontent.com/fly9i/aiconfig/main/AGENTS.md";
+const WORK_AGENTS_URL: &str = "https://raw.githubusercontent.com/fly9i/aiconfig/main/WorkAgents.md";
 
 #[cfg(unix)]
 use std::os::unix::fs::symlink;
@@ -27,6 +28,8 @@ struct Cli {
 enum Commands {
     /// Download AGENTS.md and symlink to CLAUDE.md
     Agents,
+    /// Download WorkAgents.md as AGENTS.md and symlink to CLAUDE.md
+    Work,
 }
 
 fn prompt_overwrite(path: &std::path::Path) -> bool {
@@ -37,7 +40,7 @@ fn prompt_overwrite(path: &std::path::Path) -> bool {
     matches!(input.trim().to_lowercase().as_str(), "y" | "yes")
 }
 
-fn cmd_agents() -> Result<(), Box<dyn std::error::Error>> {
+fn cmd_agents(url: &str) -> Result<(), Box<dyn std::error::Error>> {
     let cwd = std::env::current_dir()?;
     let agents_path = cwd.join("AGENTS.md");
     let claude_path = cwd.join("CLAUDE.md");
@@ -51,9 +54,9 @@ fn cmd_agents() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
 
-    println!("Downloading AGENTS.md from {}", AGENTS_URL);
+    println!("Downloading AGENTS.md from {}", url);
 
-    let content = reqwest::blocking::get(AGENTS_URL)?
+    let content = reqwest::blocking::get(url)?
         .error_for_status()?
         .text()?;
     fs::write(&agents_path, &content)?;
@@ -71,7 +74,8 @@ fn cmd_agents() -> Result<(), Box<dyn std::error::Error>> {
 fn main() {
     let cli = Cli::parse();
     if let Err(e) = match cli.command {
-        Commands::Agents => cmd_agents(),
+        Commands::Agents => cmd_agents(AGENTS_URL),
+        Commands::Work => cmd_agents(WORK_AGENTS_URL),
     } {
         eprintln!("Error: {e}");
         std::process::exit(1);
